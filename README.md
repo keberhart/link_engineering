@@ -16,5 +16,10 @@
    3. I have also used;
        "Electromagnetic Waves and Antennas" by Sophocles J. Orfanidis
 
+   4. Noise figure calculations and antenna effective aperature were taken
+       from the source code of "Virgo: A Versatile Spectrometer for Radio
+       Astronomy" by Apostolos Spanakis-Misirlis, Cameron L. Van Eck and
+       E.p. Boven
 
-
+   5. "Antenna Models For Electromagnetic Compatability Analyses"
+          NTIA TM-12-489, C.W Wang Ph.D., T. Keech, Ph.D.
