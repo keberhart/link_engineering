@@ -41,8 +41,8 @@ def calc_SNR(EIRP, L, GoT):
 
         (C/No) = (EIRP)*(1/L)*(GoT)*(1/k)
 
-        EIRP is the Effective Isotropic Radiated Power
-        L is the medium losses
+        EIRP is the Effective Isotropic Radiated Power in dB
+        L is the medium losses in dB
         GoT is the receiving system G/T or System Gain over System noise
             temperature.
         k is Boltzmann's constant (1.3806x10^-23 J/K or -228.5991 dBW/K/Hz)
