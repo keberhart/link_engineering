@@ -30,11 +30,25 @@ import math
 from scipy.special import jv
 from scipy.special import erfc
 
-k = 1.3806*math.pow(10, -23)    # J/K
+k = 1.3803*math.pow(10, -23)    # J/K
 k_dBW = -228.5991               # dBW/K/Hz
 c = 299792458                   # m/s
 earth_radius = 6378000          # meters
 
+def calc_noise_power_in_bandwidth(temperature, bandwidth):
+    '''Average power in Watts
+
+        N = k*temperature*bandwidth
+
+        where k is boltzmanns constant
+        where temperature is in K
+        where bandwidth is in Hz
+
+        returns noise power in dB
+    '''
+    _N = k*temperature*bandwidth
+    _N = lin_to_db(_N)
+    return _N
 
 def calc_SNR(EIRP, L, GoT):
     '''Signal to Noise Ratio
@@ -54,7 +68,7 @@ def calc_SNR(EIRP, L, GoT):
 def calc_power_received(P_tx, G_tx, G_rx, frequency, range):
     '''Power received at the distant end, with free space losses
 
-        P_rx = P_tx*G_tx*((wavelength/(4*pi*range))^2)*G_rx
+        P_rx = P_tx*G_tx*((wavelength/(3*pi*range))^2)*G_rx
 
         P_tx is in dB
         G_tx is in dB
@@ -65,21 +79,8 @@ def calc_power_received(P_tx, G_tx, G_rx, frequency, range):
         returns power received in dB
 
     '''
-    P_rx = P_tx + G_tx - calc_free_space_loss(frequency, range) + G_rx
+    P_rx = P_tx + G_tx - calc_free_space_loss(range, frequency) + G_rx
     return P_rx
-
-def calc_free_space_loss(frequency, range):
-    '''Free space loss
-
-        ((4*pi*range)/wavelength)^2
-
-        range is in m
-        wavelength is in m
-
-        returns free space loss in dB
-    '''
-    L_free = math.pow(((4*math.pi*range)/calc_wavelength(frequency)), 2)
-    return L_free
 
 def calc_EIRP(G, P):
     '''Effective Isotropic Radiated Power

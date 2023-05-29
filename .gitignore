@@ -1,0 +1,4 @@
+coverage.xml
+.coverage
+tests/__pycache__/test_link_eng.cpython-311-pytest-7.3.1.pyc
+link_engineering/__pycache__/link_eng.cpython-311.pyc

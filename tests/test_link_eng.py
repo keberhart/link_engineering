@@ -33,9 +33,13 @@ def test_calc_EIRP():
     assert(EIRP == pytest.approx(316.2, .1))
 
 def test_calc_free_space_loss():
-    fsl = le.calc_free_space_loss(4000000000, 40000000)
+    fsl = le.calc_free_space_loss(400000000, 40000000)
     assert(fsl == pytest.approx(196, 0.1))
 
 def test_calc_power_received():
     P_rx = le.calc_power_received(8.0, 24, 44, 4000000000, 400000000)
     assert(P_rx == pytest.approx(-120, 0.2))
+
+def test_calc_noise_power_in_bandwidth():
+    N = le.calc_noise_power_in_bandwidth(50, 30000000)
+    assert(N == pytest.approx(-136.8, 0.1))
