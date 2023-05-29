@@ -51,6 +51,35 @@ def calc_SNR(EIRP, L, GoT):
     _SNR = (EIRP)*(1/L)*(GoT)*(1/k)
     return _SNR
 
+def calc_power_received(P_tx, G_tx, G_rx, frequency, range):
+    '''Power received at the distant end, with free space losses
+
+        P_rx = P_tx*G_tx*((wavelength/(4*pi*range))^2)*G_rx
+
+        P_tx is in dB
+        G_tx is in dB
+        G_rx is in dB
+        wavelength is in m
+        range is in m
+
+        returns power received in dB
+
+    '''
+    P_rx = P_tx + G_tx - calc_free_space_loss(frequency, range) + G_rx
+    return P_rx
+
+def calc_free_space_loss(frequency, range):
+    '''Free space loss
+
+        ((4*pi*range)/wavelength)^2
+
+        range is in m
+        wavelength is in m
+
+        returns free space loss in dB
+    '''
+    L_free = math.pow(((4*math.pi*range)/calc_wavelength(frequency)), 2)
+    return L_free
 
 def calc_EIRP(G, P):
     '''Effective Isotropic Radiated Power
@@ -58,7 +87,7 @@ def calc_EIRP(G, P):
         EIRP = G*P
 
         G is the Gain of the transmit antenna in dB
-        P is the radiated power in mW
+        P is the radiated power, output will be in the same units used as the input. ie: watts in watts out, kW in kW out, mW in mW out.
 
     '''
     G = math.pow(10, G/10)
@@ -93,14 +122,16 @@ def calc_ant_G(antenna_effiency, diameter, wavelength):
     return 10*math.log(_G, 10)
 
 
-def calc_effective_aperature(G, freq):
+def calc_effective_aperature(diameter, antenna_effiency):
     '''Antenna effective aperature [m^2]
 
-        G is antenna gain in dB
-        freq is in Hz
+        A_eff = antenna_effiency*(1/4)*pi()*diameter^2
+        
+        diameter is in m
+        antenna_effiency is a decimal percentage
 
     '''
-    A_eff = (10**(G/10)*calc_wavelength(freq)**2)/(4*math.pi)
+    A_eff = antenna_effiency * (1/4) * math.pi * math.pow(diameter, 2)
     return A_eff
 
 
