@@ -151,13 +151,15 @@ def test_power_W():
     errors = []
     power = units.Power(W=1.0)
     if not (power.W == 1.0):
-        errors.append("W not correct value")
+        errors.append("W not correct value: {}".format(power.W))
     if not (power.kW == .001):
-        errors.append('kWnot corect value')
+        errors.append('kWnot corect value: {}'.format(power.kW))
     if not (power.mW == 1000.0):
-        errors.append("mW not correct value")
-    if not (power.dB == 0.0):
-        errors.append("dB not correct value")
+        errors.append("mW not correct value: {}".format(power.mW))
+    if not (power.dBw == 0.0):
+        errors.append("dBw not correct value: {}".format(power.dBw))
+    if not (power.dBm == 30.0):
+        errors.append("dBm not correct value: {}".format(power.dBm))
     assert not errors, "errors occured:\n{}".format("\n".join(errors))
 
 def test_power_kW():
@@ -169,8 +171,8 @@ def test_power_kW():
         errors.append('kWnot corect value: {}'.format(power.kW))
     if not (power.mW == 1000.0):
         errors.append("mW not correct value: {}".format(power.mW))
-    if not (power.dB == 0.0):
-        errors.append("dB not correct value: {}".format(power.dB))
+    if not (power.dBm == 30.0):
+        errors.append("dBm not correct value: {}".format(power.dBm))
     assert not errors, "errors occured:\n{}".format("\n".join(errors))
 
 def test_power_mW():
@@ -182,21 +184,36 @@ def test_power_mW():
         errors.append('kWnot corect value: {}'.format(power.kW))
     if not (power.mW == 1000.0):
         errors.append("mW not correct value: {}".format(power.mW))
-    if not (power.dB == 0.0):
-        errors.append("dB not correct value: {}".format(power.dB))
+    if not (power.dBm == 30.0):
+        errors.append("dBm not correct value: {}".format(power.dBm))
     assert not errors, "errors occured:\n{}".format("\n".join(errors))
 
-def test_power_dB():
+def test_power_dBm():
     errors = []
-    power = units.Power(dB=0.0)
+    power = units.Power(dBm=30.0)
     if not (power.W == 1.0):
         errors.append("W not correct value: {}".format(power.W))
     if not (power.kW == .001):
         errors.append('kW not corect value: {}'.format(power.kW))
     if not (power.mW == 1000.0):
         errors.append("mW not correct value: {}".format(power.mW))
-    if not (power.dB == 0.0):
-        errors.append("dB not correct value: {}".format(power.dB))
+    if not (power.dBm == 30.0):
+        errors.append("dBm not correct value: {}".format(power.dBm))
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+def test_power_dBw():
+    errors = []
+    power = units.Power(dBw=0.0)
+    if not (power.W == 1.0):
+        errors.append("W not correct value: {}".format(power.W))
+    if not (power.kW == .001):
+        errors.append('kW not corect value: {}'.format(power.kW))
+    if not (power.mW == 1000.0):
+        errors.append("mW not correct value: {}".format(power.mW))
+    if not (power.dBw == 0.0):
+        errors.append("dBw not correct value: {}".format(power.dBw))
+    if not (power.dBm == 30.0):
+        errors.append("dBm not correct value: {}".format(power.dBm))
     assert not errors, "errors occured:\n{}".format("\n".join(errors))
 
 def test_pwr_repr():

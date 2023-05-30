@@ -119,7 +119,7 @@ class Power(Unit):
     """
     _warned = False
 
-    def __init__(self, kW=None, W=None, mW=None, dB=None):
+    def __init__(self, kW=None, W=None, mW=None, dBm=None, dBw=None):
         if kW is not None:
             self.kW = _to_array(kW)
             self.W = kW * 1000
@@ -128,16 +128,20 @@ class Power(Unit):
         elif mW is not None:
             self.mW = mW = _to_array(mW)
             self.W = mW / 1000
-        elif dB is not None:
-            self.dB = dB = _to_array(dB)
-            self.W = np.power(10, dB/10)
+        elif dBw is not None:
+            self.dBw = dBw = _to_array(dBw)
+            self.W = np.power(10, dBw/10)
+        elif dBm is not None:
+            self.dBm = dBm = _to_array(dBm)
+            self.W = np.power(10, (dBm-30)/10)
         else:
             raise ValueError('to construct a Frequency provide kW, W, mW, or dB')
 
     kW = getset('kW', 'Kilowatt', 0.001, 'W')
     W = getset('W', 'Watt')
     mW = getset('mW', 'Milliwatt', 1000.0, 'W')
-    dB = getset('dB', 'deciBel', (lambda a: np.power(10, a/10)), 'W', inverse=(lambda a: 10*np.log10(a)))
+    dBw = getset('dBw', 'deciBel', (lambda a: np.power(10, (a)/10)), 'W', inverse=(lambda a: 10*np.log10(a)))
+    dBm = getset('dBm', 'deciBel', (lambda a: np.power(10, (a-30)/10)), 'W', inverse=(lambda a: 10*np.log10(a)+30))
 
     def __str__(self):
         n = self.W
