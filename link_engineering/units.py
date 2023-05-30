@@ -22,12 +22,15 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+
+30MAY23 - Kyle Eberhart - Added support for Frequency units, distance default storage changed to meters.
+
 """
 import numpy as np
 from numpy import abs, copysign, isnan
-from constants import AU_KM, AU_M, C, DAY_S, tau
-from descriptorlib import reify
-from functions import _to_array, length_of
+from link_engineering.constants import AU_KM, AU_M, C, DAY_S, tau
+from link_engineering.descriptorlib import reify
+from link_engineering.functions import _to_array, length_of
 
 _dfmt = '{0}{1:02}deg {2:02}\' {3:02}.{4:0{5}}"'
 _dsgn = '{0:+>1}{1:02}deg {2:02}\' {3:02}.{4:0{5}}"'
@@ -67,11 +70,12 @@ class getset(object):
       and return the result.
 
     """
-    def __init__(self, name, docstring, conversion_factor=None, core_unit=None):
+    def __init__(self, name, docstring, conversion_factor=None, core_unit=None, **kwargs):
         self.name = name
         self.__doc__ = docstring
         self.conversion_factor = conversion_factor
         self.core_unit = core_unit
+        self.inverse_function = kwargs.get('inverse', None)
 
     def __get__(self, instance, objtype=None):
         if instance is None:  # the class itself has been asked for this name
@@ -81,60 +85,163 @@ class getset(object):
                 setattr(obj, self.name, value)
                 conversion_factor = self.conversion_factor
                 if conversion_factor is not None:
-                    setattr(obj, self.core_unit, value / conversion_factor)
+                    if callable(conversion_factor):
+                        setattr(obj, self.core_unit, conversion_factor(value))
+                    else:
+                        setattr(obj, self.core_unit, value / conversion_factor)
                 return obj
             constructor.__doc__ = self.__doc__
             return constructor
-        value = getattr(instance, self.core_unit) * self.conversion_factor
+        if callable(self.conversion_factor):
+            value = self.inverse_function(getattr(instance, self.core_unit))
+        else:
+            value = getattr(instance, self.core_unit) * self.conversion_factor
         instance.__dict__[self.name] = value
         return value
 
-class Distance(Unit):
-    """A distance, stored internally as au and available in other units.
+class Power(Unit):
+    """A Power, stored internally as Watts and available in other units.
 
-    You can initialize a ``Distance`` by providing a single float or a
-    float array as either an ``au=``, ``km=``, or ``m=`` parameter.
+    You can initialize a ``Power`` by providing a single float or a
+    float array as either an ``kW=``, ``W=``, ``mW=``, or ``dB=`` parameter.
 
-    You can access the magnitude of the distance with its three
-    attributes ``.au``, ``.km``, and ``.m``.  By default a distance
-    prints itself in astronomical units (au), but you can take control
+    You can access the magnitude of the power with its
+    attributes ``.kW``, ``.W``, ``.mW``, and ``.dB``.  By default a power
+    prints itself in Watts (W), but you can take control
     of the formatting and choice of units yourself using standard Python
     numeric formatting:
 
-    >>> d = Distance(au=1)
-    >>> print(d)
-    1.0 au
-    >>> print('{:.2f} km'.format(d.km))
-    149597870.70 km
+    >>> p = Power(W=.001)
+    >>> print(p)
+    .001 W
+    >>> print('{:.2f} mW'.format(p.mW))
+    1.00 mW
 
     """
     _warned = False
 
-    def __init__(self, au=None, km=None, m=None):
+    def __init__(self, kW=None, W=None, mW=None, dB=None):
+        if kW is not None:
+            self.kW = _to_array(kW)
+            self.W = kW * 1000
+        elif W is not None:
+            self.W = W = _to_array(W)
+        elif mW is not None:
+            self.mW = mW = _to_array(mW)
+            self.W = mW / 1000
+        elif dB is not None:
+            self.dB = dB = _to_array(dB)
+            self.W = np.power(10, dB/10)
+        else:
+            raise ValueError('to construct a Frequency provide kW, W, mW, or dB')
+
+    kW = getset('kW', 'Kilowatt', 0.001, 'W')
+    W = getset('W', 'Watt')
+    mW = getset('mW', 'Milliwatt', 1000.0, 'W')
+    dB = getset('dB', 'deciBel', (lambda a: np.power(10, a/10)), 'W', inverse=(lambda a: 10*np.log10(a)))
+
+    def __str__(self):
+        n = self.W
+        return ('{0} W' if getattr(n, 'shape', 0) else '{0:.6} W').format(n)
+
+    def __repr__(self):
+        return '<{0} {1}>'.format(type(self).__name__, self)
+
+class Frequency(Unit):
+    """A Frequency, stored internally as GHz and available in other units.
+
+    You can initialize a ``Frequency`` by providing a single float or a
+    float array as either an ``Hz=``, ``KHz``, ``MHz=``, or ``GHz=`` parameter.
+
+    You can access the magnitude of the Frequency with its
+    attributes ``.Hz``, ``KHz``, ``.MHz``, and ``.GHz``.  By default a Frequency
+    prints itself in GigaHertz (GHz), but you can take control
+    of the formatting and choice of units yourself using standard Python
+    numeric formatting:
+
+    >>> f = Frequency(GHz=4)
+    >>> print(f)
+    4.0 GHz
+    >>> print('{:.2f} MHz'.format(f.MHz))
+    4000.00 MHz
+
+    """
+    _warned = False
+
+    def __init__(self, Hz=None, KHz=None, MHz=None, GHz=None):
+        if Hz is not None:
+            self.Hz = _to_array(Hz)
+            self.GHz = Hz / 1000000000
+        elif KHz is not None:
+            self.KHz = KHz = _to_array(KHz)
+            self.GHz = KHz / 1000000
+        elif MHz is not None:
+            self.MHz = MHz = _to_array(MHz)
+            self.GHz = MHz / 1000
+        elif GHz is not None:
+            self.GHz = GHz = _to_array(GHz)
+        else:
+            raise ValueError('to construct a Frequency provide Hz, KHz, MHz, or GHz')
+        self.wl = C/self.Hz
+
+    Hz = getset('Hz', 'Hertz', 1000000000, 'GHz')
+    KHz = getset('KHz', 'KiloHertz', 1000000, 'GHz')
+    MHz = getset('MHz', 'MegaHertz', 1000, 'GHz')
+    GHz = getset('GHz', 'GigaHertz')
+
+    def __str__(self):
+        n = self.GHz
+        return ('{0} GHz' if getattr(n, 'shape', 0) else '{0:.6} GHz').format(n)
+
+    def __repr__(self):
+        return '<{0} {1}>'.format(type(self).__name__, self)
+
+class Distance(Unit):
+    """A distance, stored internally as m and available in other units.
+
+    You can initialize a ``Distance`` by providing a single float or a float
+    array as either an ``au=``, ``km=``, ``m=``, ``cm=``, or ``mm=``  parameter.
+
+    You can access the magnitude of the distance with its attributes ``.au``,
+    ``.km``, ``.m``, ``.cm``, and ``.mm``.  By default a distance prints itself in meters (m), but you can take control of the formatting and choice of units yourself using standard Python numeric formatting:
+
+    >>> d = Distance(m=1000)
+    >>> print(d)
+    1000.0 m
+    >>> print('{:.2f} km'.format(d.km))
+    1.00 km
+
+    """
+    _warned = False
+
+    def __init__(self, au=None, km=None, m=None, cm=None, mm=None):
         if au is not None:
             self.au = _to_array(au)
-            """Astronomical units."""
+            self.m = au * AU_M
         elif km is not None:
             self.km = km = _to_array(km)
-            self.au = km / AU_KM
+            self.m = km * 1000
         elif m is not None:
             self.m = m = _to_array(m)
-            self.au = m / AU_M
+        elif cm is not None:
+            self.cm = _to_array(cm)
+            self.m = cm / 100
+        elif mm is not None:
+            self.mm = _to_array(mm)
+            self.m = mm / 1000
         else:
             raise ValueError('to construct a Distance provide au, km, or m')
 
-    @classmethod
-    def from_au(cls, au):  # deprecated and no longer used internally
-        return cls.au(au)
-
     au = getset('au', 'Astronomical units'
-                ' (the Earth-Sun distance of 149,597,870,700 m).')
-    km = getset('km', 'Kilometers (1,000 meters).', AU_KM, 'au')
-    m = getset('m', 'Meters.', AU_M, 'au')
+                ' (the Earth-Sun distance of 149,597,870,700 m).', (lambda a: a*AU_M), 'm', inverse=(lambda a: a/AU_M))
+    km = getset('km', 'Kilometers (1,000 meters).', .001, 'm')
+    m = getset('m', 'Meters.')
+    cm = getset('cm', 'Centimeters', 100, 'm')
+    mm = getset('mm', 'Millimeters', 1000, 'm')
 
     def __str__(self):
-        n = self.au
-        return ('{0} au' if getattr(n, 'shape', 0) else '{0:.6} au').format(n)
+        n = self.m
+        return ('{0} au' if getattr(n, 'shape', 0) else '{0:.6} m').format(n)
 
     def __repr__(self):
         return '<{0} {1}>'.format(type(self).__name__, self)

@@ -29,6 +29,7 @@
 import math
 from scipy.special import jv
 from scipy.special import erfc
+import link_engineering.constants
 
 k = 1.3803*math.pow(10, -23)    # J/K
 k_dBW = -228.5991               # dBW/K/Hz

@@ -22,6 +22,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
+import math
 
 # Definitions.
 AU_M = 149597870700             # per IAU 2012 Resolution B2
@@ -39,6 +40,8 @@ tau = 6.283185307179586476925287  # lower case, for symmetry with math.pi
 # Physics.
 C = 299792458.0                            # m/s
 GM_SUN_Pitjeva_2005_km3_s2 = 132712440042  # Elena Pitjeva, 2015JPCRD..44c1210P
+K = 1.3803*math.pow(10, -23)    # J/K
+K_dBW = -228.5991               # dBW/K/Hz
 
 # Earth and its orbit.
 ANGVEL = 7.2921150e-5           # radians/s

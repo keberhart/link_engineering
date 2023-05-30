@@ -28,7 +28,7 @@ from numpy import (
     full_like, load, rollaxis, sin, sqrt,
 )
 from pkgutil import get_data
-from constants import tau
+from link_engineering.constants import tau
 
 _AVOID_DIVIDE_BY_ZERO = finfo(float64).tiny
 
