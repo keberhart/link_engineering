@@ -29,12 +29,8 @@
 import math
 from scipy.special import jv
 from scipy.special import erfc
-import link_engineering.constants
-
-k = 1.3803*math.pow(10, -23)    # J/K
-k_dBW = -228.5991               # dBW/K/Hz
-c = 299792458                   # m/s
-earth_radius = 6378000          # meters
+from link_engineering.constants import K, K_dBW, C, ERAD
+from link_engineering import units
 
 def calc_noise_power_in_bandwidth(temperature, bandwidth):
     '''Average power in Watts
@@ -47,7 +43,7 @@ def calc_noise_power_in_bandwidth(temperature, bandwidth):
 
         returns noise power in dB
     '''
-    _N = k*temperature*bandwidth
+    _N = K*temperature*bandwidth
     _N = lin_to_db(_N)
     return _N
 
@@ -63,7 +59,7 @@ def calc_SNR(EIRP, L, GoT):
         k is Boltzmann's constant (1.3806x10^-23 J/K or -228.5991 dBW/K/Hz)
 
     '''
-    _SNR = (EIRP)*(1/L)*(GoT)*(1/k)
+    _SNR = (EIRP)*(1/L)*(GoT)*(1/K)
     return _SNR
 
 def calc_power_received(P_tx, G_tx, G_rx, frequency, range):
@@ -106,7 +102,7 @@ def calc_wavelength(freq):
         freq is the frequency in Hz
 
     '''
-    wavelength = c/freq
+    wavelength = C/freq
     return wavelength
 
 
@@ -227,7 +223,7 @@ def calc_SEFD(eff_aperature, T_sys):
         T_sys is the system noise temperature in [K]
 
     '''
-    _sefd = 10**26 * 2*k*T_sys/eff_aperature
+    _sefd = 10**26 * 2*K*T_sys/eff_aperature
     return _sefd
 
 
@@ -252,8 +248,8 @@ def calc_off_nadir(el_angle, sc_alt, gs_alt):
         ground station altitude in meters
 
     '''
-    gs_part = (gs_alt+earth_radius)*math.sin(math.radians(el_angle+90.0))
-    _DOFF = math.degrees(math.asin(gs_part/(sc_alt+earth_radius)))
+    gs_part = (gs_alt+ERAD)*math.sin(math.radians(el_angle+90.0))
+    _DOFF = math.degrees(math.asin(gs_part/(sc_alt+ERAD)))
     return _DOFF
 
 
@@ -295,7 +291,7 @@ def calc_free_space_loss(slant_range, frequency):
         c is the speed of light in m/s
 
     '''
-    _FSL = math.pow(4*math.pi*slant_range*frequency/c, 2)
+    _FSL = math.pow(4*math.pi*slant_range*frequency/C, 2)
     return lin_to_db(_FSL)
 
 
