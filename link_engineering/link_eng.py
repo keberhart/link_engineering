@@ -1,30 +1,31 @@
 #!/usr/bin/env python3
-#
-#   A library for satellite link engineering equations.
-#
-#   Kyle Eberhart - 29OCT20
-#
-#   Public Domain - no implied warranty, use at your own risk
-#
-#   1. This library uses many of the ideas and equations from;
-#       "Link Performance Analysis for a Proposed Future Architecture of the
-#       Air Force Satellite Control Network" by Eric W. Nelson, USAF
-#
-#   2. Just like Cpt. Nelson I also referenced;
-#       "DSN Telecommunications Link Design Handbook" 810-005 rev. E
-#
-#   3. I have also used;
-#       "Electromagnetic Waves and Antennas" by Sophocles J. Orfanidis
-#
-#   4. Noise figure calculations and antenna effective aperature were taken
-#       from the source code of "Virgo: A Versatile Spectrometer for Radio
-#       Astronomy" by Apostolos Spanakis-Misirlis, Cameron L. Van Eck and
-#       E.p. Boven
-#
-#   5. "Antenna Models For Electromagnetic Compatability Analyses"
-#           NTIA TM-12-489, C.W Wang Ph.D., T. Keech, Ph.D.
-#
-# -----------------------------------------------------------------------------
+'''
+   link_eng.py - A library for satellite link engineering equations.
+
+   Kyle Eberhart - 29OCT20
+
+   Public Domain - no implied warranty, use at your own risk
+
+   1. This library uses many of the ideas and equations from;
+       "Link Performance Analysis for a Proposed Future Architecture of the Air
+       Force Satellite Control Network" by Eric W. Nelson, USAF
+
+   2. Just like Cpt. Nelson I also referenced;
+       "DSN Telecommunications Link Design Handbook" 810-005 rev. E
+
+   3. I have also used;
+       "Electromagnetic Waves and Antennas" by Sophocles J. Orfanidis
+
+   4. Noise figure calculations and antenna effective aperature were taken
+       from the source code of "Virgo: A Versatile Spectrometer for Radio
+       Astronomy" by Apostolos Spanakis-Misirlis, Cameron L. Van Eck and E.p.
+       Boven
+
+   5. "Antenna Models For Electromagnetic Compatability Analyses"
+           NTIA TM-12-489, C.W Wang Ph.D., T. Keech, Ph.D.
+
+    31MAY23 - Kyle Eberhart - updated functions to use the units library
+'''
 
 import math
 from scipy.special import jv
@@ -35,16 +36,19 @@ from link_engineering import units
 def calc_noise_power_in_bandwidth(temperature, bandwidth):
     '''Average power in Watts
 
+        Reference 3: Equation 16.7.1
+                     Example 16.7.1
+
         N = k*temperature*bandwidth
 
         where k is boltzmanns constant
-        where temperature is in K
-        where bandwidth is in Hz
+        where temperature is in K, from the units.py module
+        where bandwidth is in Hz, from the units.py module
 
-        returns noise power in dB
+        returns noise power as units.Power()
     '''
-    _N = K*temperature*bandwidth
-    _N = lin_to_db(_N)
+    _N = K*temperature.k*bandwidth.Hz
+    _N = units.Power(W=_N)
     return _N
 
 def calc_SNR(EIRP, L, GoT):
@@ -65,31 +69,40 @@ def calc_SNR(EIRP, L, GoT):
 def calc_power_received(P_tx, G_tx, G_rx, frequency, range):
     '''Power received at the distant end, with free space losses
 
+        Reference 3: Equation 16.6.7
+                     Example 16.6.1
+
         P_rx = P_tx*G_tx*((wavelength/(3*pi*range))^2)*G_rx
 
-        P_tx is in dB
-        G_tx is in dB
-        G_rx is in dB
-        wavelength is in m
-        range is in m
+        P_tx is in dBw, units.Power()
+        G_tx is in dB, units.Gain()
+        G_rx is in dB, units.Gain()
+        wavelength is in m, units.Frequency()
+        range is in m, units.Distance()
 
-        returns power received in dB
+        returns power received in dBw, units.Power()
 
     '''
-    P_rx = P_tx + G_tx - calc_free_space_loss(range, frequency) + G_rx
+    free_space_loss = calc_free_space_loss(range, frequency)
+    P_rx = P_tx.dBw + G_tx.dB - free_space_loss.dB + G_rx.dB
+    P_rx = units.Power(dBw=P_rx)
     return P_rx
 
 def calc_EIRP(G, P):
     '''Effective Isotropic Radiated Power
+
+        Reference 3: Example 16.2.1
 
         EIRP = G*P
 
         G is the Gain of the transmit antenna in dB
         P is the radiated power, output will be in the same units used as the input. ie: watts in watts out, kW in kW out, mW in mW out.
 
+        returns units.Power()
+
     '''
-    G = math.pow(10, G/10)
-    _EIRP = G*P
+    _EIRP = G.a*P.W
+    _EIRP = units.Power(W=_EIRP)
     return _EIRP
 
 
@@ -109,42 +122,50 @@ def calc_wavelength(freq):
 def calc_ant_G(antenna_effiency, diameter, wavelength):
     '''Gain of a simple prime focus parbolic antenna
 
+        Reference 3: Equation 16.3.9
+
         G = antenna_effiency*(pi()*diameter/wavelength)^2
 
         antenna_effiency is a decimal percentage
-        diameter is in m
-        wavelength is in m
+        diameter is in m, a units.Distance
+        wavelength is in m, provided by a units.Frequency, 
 
+        returns units.Gain()
     '''
-    _G = antenna_effiency*math.pow(math.pi*diameter/wavelength, 2)
-    return 10*math.log(_G, 10)
+    _G = antenna_effiency*math.pow(math.pi*diameter.m/wavelength.wl, 2)
+    _G = units.Gain(a=_G)
+    return _G
 
 
-def calc_effective_aperature(diameter, antenna_effiency):
+def calc_effective_aperature(antenna_effiency, diameter):
     '''Antenna effective aperature [m^2]
 
+        Reference 3: Equation 16.3.8
+    
         A_eff = antenna_effiency*(1/4)*pi()*diameter^2
         
-        diameter is in m
+        diameter is in m, a units.Distance
         antenna_effiency is a decimal percentage
 
+        returns float(m^2)
     '''
-    A_eff = antenna_effiency * (1/4) * math.pi * math.pow(diameter, 2)
+    A_eff = antenna_effiency * (1/4) * math.pi * math.pow(diameter.m, 2)
     return A_eff
 
 
 def calc_beamwidth(G):
     '''Antenna beamwidth in degrees
 
+        Refrence 3: Example 16.2.2
+    
         G is antenna gain in dB, calculated above...
 
     '''
-    G = math.pow(10, G/10)
-    _beamwidth = math.sqrt(16/G)
-    return math.degrees(_beamwidth)
+    _beamwidth = math.sqrt(16/G.a)
+    return units.Angle(radians=_beamwidth)
 
 
-def calc_half_power_beamwidth(wavelength, diameter):
+def calc_half_power_beamwidth(diameter, wavelength):
     '''3dB beamwidth or HPBW
 
         reference 3; page 748; equation 16.3.11
@@ -152,11 +173,13 @@ def calc_half_power_beamwidth(wavelength, diameter):
 
         HPBW = 70*(wavelength/diameter)
 
-        diameter of the parabolic reflector in meters
-        wavelength is the wavelength in meters
+        diameter of the parabolic reflector in meters, units.Distance object
+        wavelength is in meters, uses units.Frequency object
 
+        Returns a units.Angle()
     '''
-    _HPBW = 70*wavelength/diameter
+    _HPBW = 70*wavelength.wl/diameter.m
+    _HPBW = units.Angle(degrees=_HPBW)
     return _HPBW
 
 
@@ -177,8 +200,11 @@ def calc_antenna_T(beamwidth, antenna_effiency, sky_temp_K, ambient_temp_K):
 
     '''
     Ta_mb = 1/beamwidth*(sky_temp_K*(antenna_effiency)*beamwidth)
+    print(Ta_mb)
     Ta_gbl = 1/beamwidth*(ambient_temp_K*(1-antenna_effiency)/2*beamwidth)
+    print(Ta_gbl)
     Ta_hbl = 1/beamwidth*(ambient_temp_K/2*(1-antenna_effiency)/2*beamwidth)
+    print(Ta_hbl)
     _T = Ta_mb + Ta_gbl + Ta_hbl
     return _T
 
@@ -283,16 +309,18 @@ def calc_atmo_loss(el_angle):
 def calc_free_space_loss(slant_range, frequency):
     '''Free Space Loss
 
+        Reference 3: Equation 16.6.5
+
         FSL = (4*pi*range*frequency/c)^2
 
         slant_range is the straight line distance to the spacecraft from
-            the earth terminal in meters
-        frequency is in Hz
+            the earth terminal in meters, units.Distance()
+        frequency is in Hz, units.Frequency
         c is the speed of light in m/s
 
     '''
-    _FSL = math.pow(4*math.pi*slant_range*frequency/C, 2)
-    return lin_to_db(_FSL)
+    _FSL = math.pow(4*math.pi*slant_range.m*frequency.Hz/C, 2)
+    return units.Gain(a=_FSL)
 
 
 def calc_polarization_loss(nadir_off):

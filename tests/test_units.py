@@ -51,13 +51,30 @@ def test_frequency_GHz():
     errors = []
     freq = units.Frequency(GHz=0.000001)
     if not (freq.Hz == 1000.0):
-        errors.append("Hz not correct value")
+        errors.append("Hz not correct value: {}".format(freq.Hz))
     if not (freq.KHz == 1.0):
-        errors.append('KHz not corect value')
+        errors.append('KHz not corect value: {}'.format(freq.KHz))
     if not (freq.MHz == 0.001):
-        errors.append("MHz not correct value")
+        errors.append("MHz not correct value: {}".format(freq.MHz))
     if not (freq.GHz == 0.000001):
-        errors.append("GHz not correct value")
+        errors.append("GHz not correct value: {}".format(freq.GHz))
+    if not (freq.wl == 299792.458):
+        errors.append("wl no correct value: {}".format(freq.wl))
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+def test_frequency_wl():
+    errors = []
+    freq = units.Frequency(wl=299792.458)
+    if not (freq.Hz == 1000.0):
+        errors.append("Hz not correct value: {}".format(freq.Hz))
+    if not (freq.KHz == 1.0):
+        errors.append('KHz not corect value: {}'.format(freq.KHz))
+    if not (freq.MHz == 0.001):
+        errors.append("MHz not correct value: {}".format(freq.MHz))
+    if not (freq.GHz == 0.000001):
+        errors.append("GHz not correct value: {}".format(freq.GHz))
+    if not (freq.wl == 299792.458):
+        errors.append("wl no correct value: {}".format(freq.wl))
     assert not errors, "errors occured:\n{}".format("\n".join(errors))
 
 def test_freq_repr():
@@ -221,6 +238,75 @@ def test_pwr_repr():
     errors = []
     output = freq.__repr__()
     expected = '<Power 1.0 W>'
+    if not(output == expected):
+        errors.append('got: {}\nexpected: {}'.format(output, expected))
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+def test_temp_k():
+    errors = []
+    power = units.Temperature(k=273.15)
+    if not (power.k == 273.15):
+        errors.append("K not correct value: {}".format(power.k))
+    if not (power.c == 0.0):
+        errors.append('C not corect value: {}'.format(power.c))
+    if not (power.f == 32.0):
+        errors.append("f not correct value: {}".format(power.f))
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+def test_temp_c():
+    errors = []
+    power = units.Temperature(c=0.0)
+    if not (power.k == 273.15):
+        errors.append("K not correct value: {}".format(power.k))
+    if not (power.c == 0.0):
+        errors.append('C not corect value: {}'.format(power.c))
+    if not (power.f == 32.0):
+        errors.append("f not correct value: {}".format(power.f))
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+def test_temp_f():
+    errors = []
+    power = units.Temperature(f=32.0)
+    if not (power.k == 273.15):
+        errors.append("K not correct value: {}".format(power.k))
+    if not (power.c == 0.0):
+        errors.append('C not corect value: {}'.format(power.c))
+    if not (power.f == 32.0):
+        errors.append("f not correct value: {}".format(power.f))
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+def test_pwr_repr():
+    freq = units.Temperature(k=1.0)
+    errors = []
+    output = freq.__repr__()
+    expected = '<Temperature 1.0 K>'
+    if not(output == expected):
+        errors.append('got: {}\nexpected: {}'.format(output, expected))
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+def test_gain_amp():
+    errors = []
+    power = units.Gain(a=1.0)
+    if not (power.a == 1.0):
+        errors.append("a not correct value: {}".format(power.a))
+    if not (power.dB == 0.0):
+        errors.append('dB not corect value: {}'.format(power.dB))
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+def test_gain_dB():
+    errors = []
+    power = units.Gain(dB=0.0)
+    if not (power.a == 1.0):
+        errors.append("a not correct value: {}".format(power.a))
+    if not (power.dB == 0.0):
+        errors.append('dB not corect value: {}'.format(power.dB))
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+def test_gain_repr():
+    freq = units.Gain(a=1.0)
+    errors = []
+    output = freq.__repr__()
+    expected = '<Gain 1.0>'
     if not(output == expected):
         errors.append('got: {}\nexpected: {}'.format(output, expected))
     assert not errors, "errors occured:\n{}".format("\n".join(errors))

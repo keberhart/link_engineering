@@ -98,6 +98,91 @@ class getset(object):
         instance.__dict__[self.name] = value
         return value
 
+class Gain(Unit):
+    """A Temperature, stored internally as Amp Factor and available in other units.
+
+    You can initialize a ``Gain`` by providing a single float or a
+    float array as either an ``dB=`` or ``a=`` parameter.
+
+    You can access the magnitude of the Gain with its
+    attributes ``.dB`` or ``.a``.  By default a Gain
+    prints itself in Amplification factor, but you can take control
+    of the formatting and choice of units yourself using standard Python
+    numeric formatting:
+
+    >>> g = Gain(dB=0.0)
+    >>> print(g)
+    1.0 Amp
+    >>> print('{:.2f} dB'.format(g.dB))
+    0.00 dB
+
+    """
+    _warned = False
+
+    def __init__(self, dB=None, a=None):
+        if dB is not None:
+            self.dB = _to_array(dB)
+            self.a = np.power(10, dB/10)
+        elif a is not None:
+            self.a = a = _to_array(a)
+        else:
+            raise ValueError('to construct a Gain provide dB or Amplification Factor.')
+
+    a = getset('a', 'Amp')
+    dB = getset('dB', 'deciBel', (lambda a: np.power(10, (a)/10)), 'a', inverse=(lambda a: 10*np.log10(a)))
+
+    def __str__(self):
+        n = self.a
+        return ('{0}' if getattr(n, 'shape', 0) else '{0:.6}').format(n)
+
+    def __repr__(self):
+        return '<{0} {1}>'.format(type(self).__name__, self)
+
+
+class Temperature(Unit):
+    """A Temperature, stored internally as Kelvin and available in other units.
+
+    You can initialize a ``Temperature`` by providing a single float or a
+    float array as either an ``k=``, ``c=``, or ``f=`` parameter.
+
+    You can access the magnitude of the Temperature with its
+    attributes ``.k``, ``.c`` and ``.f``.  By default a Temperature
+    prints itself in Kelvin (K), but you can take control
+    of the formatting and choice of units yourself using standard Python
+    numeric formatting:
+
+    >>> t = Temperature(k=273.15)
+    >>> print(t)
+    273.15 K
+    >>> print('{:.2f} c'.format(t.c))
+    0.00 c
+
+    """
+    _warned = False
+
+    def __init__(self, k=None, c=None, f=None):
+        if k is not None:
+            self.k = _to_array(k)
+        elif c is not None:
+            self.c = c = _to_array(c)
+            self.k = c + 273.15
+        elif f is not None:
+            self.f = f = _to_array(f)
+            self.k = (f - 32) * (5/9) + 273.15 
+        else:
+            raise ValueError('to construct a Temperature provide K, C, or F.')
+
+    k = getset('k', 'Kelvin')
+    c = getset('c', 'Celcius', (lambda a: a+273.15), 'k', inverse=(lambda a: a-273.15))
+    f = getset('f', 'Fahrenheit', (lambda a: (a-32)*(5/9)+273.15), 'k', inverse=(lambda a: (a-273.15)*(9/5)+32))
+
+    def __str__(self):
+        n = self.k
+        return ('{0} K' if getattr(n, 'shape', 0) else '{0:.6} K').format(n)
+
+    def __repr__(self):
+        return '<{0} {1}>'.format(type(self).__name__, self)
+
 class Power(Unit):
     """A Power, stored internally as Watts and available in other units.
 
@@ -140,8 +225,8 @@ class Power(Unit):
     kW = getset('kW', 'Kilowatt', 0.001, 'W')
     W = getset('W', 'Watt')
     mW = getset('mW', 'Milliwatt', 1000.0, 'W')
-    dBw = getset('dBw', 'deciBel', (lambda a: np.power(10, (a)/10)), 'W', inverse=(lambda a: 10*np.log10(a)))
-    dBm = getset('dBm', 'deciBel', (lambda a: np.power(10, (a-30)/10)), 'W', inverse=(lambda a: 10*np.log10(a)+30))
+    dBw = getset('dBw', 'deciBelWatts', (lambda a: np.power(10, (a)/10)), 'W', inverse=(lambda a: 10*np.log10(a)))
+    dBm = getset('dBm', 'deciBelmilliwatts', (lambda a: np.power(10, (a-30)/10)), 'W', inverse=(lambda a: 10*np.log10(a)+30))
 
     def __str__(self):
         n = self.W
@@ -171,7 +256,7 @@ class Frequency(Unit):
     """
     _warned = False
 
-    def __init__(self, Hz=None, KHz=None, MHz=None, GHz=None):
+    def __init__(self, Hz=None, KHz=None, MHz=None, GHz=None, wl=None):
         if Hz is not None:
             self.Hz = _to_array(Hz)
             self.GHz = Hz / 1000000000
@@ -183,14 +268,17 @@ class Frequency(Unit):
             self.GHz = MHz / 1000
         elif GHz is not None:
             self.GHz = GHz = _to_array(GHz)
+        elif wl is not None:
+            self.wl = _to_array(wl)
+            self.GHz = (C/wl)/1000000000
         else:
             raise ValueError('to construct a Frequency provide Hz, KHz, MHz, or GHz')
-        self.wl = C/self.Hz
 
     Hz = getset('Hz', 'Hertz', 1000000000, 'GHz')
     KHz = getset('KHz', 'KiloHertz', 1000000, 'GHz')
     MHz = getset('MHz', 'MegaHertz', 1000, 'GHz')
     GHz = getset('GHz', 'GigaHertz')
+    wl = getset('wl', 'Wavelength', (lambda a: (C/a)/100000000), 'GHz', inverse=(lambda a: C/(a*1000000000)))
 
     def __str__(self):
         n = self.GHz
