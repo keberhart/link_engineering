@@ -6,6 +6,9 @@ from link_engineering import units as u
 
 
 # define our antenna system
-effective_aperature = 500.0
-gain = le.calc_ant_G()
-beamwidth = le.calc_beamwidth()
+diam = u.Distance(m=30.157)
+ant_eff = 0.7
+wl = u.Frequency(wl=.020)
+print(wl)
+gain = le.calc_ant_G(ant_eff, diam, wl)
+beamwidth = le.calc_beamwidth(gain)

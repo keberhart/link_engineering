@@ -191,8 +191,12 @@ def calc_antenna_T(beamwidth, antenna_effiency, sky_temp_K, ambient_temp_K):
         sky_temp_K is the sky temperature in Kelvin, varies per frequency
         ambient_temp_K is the ambient temperature in Kelvin
 
-        I am not sure where I got this equation/function. It has parts that
-        look similar to things in reference 3, at the end of page 758.
+        It looks like I got this function from;
+
+        McMaster University -
+        Lecture 7: Antenna Noise Temperature and System Signal-To-Noise Ratio
+
+        It has parts that look similar to things in reference 3, at the end of page 758.
 
         I would like to update this to better account for frequency and
         elevation angle. Reference 2 has several interesting equations but
