@@ -21,10 +21,10 @@ class Device():
     def __init__(self, name, gain=0.0, temperature=260.0, noise_figure=None):
         self.name = name
         self.gain = gain
-        if (temperature == None) and (noise_figure == None):
+        if (temperature is None) and (noise_figure is None):
             error_msg = 'A Noise Figure or Temperature must be supplied.'
             raise Exception(error_msg)
-        if noise_figure != None:
+        if noise_figure is not None:
             self.noise_figure = noise_figure
             self.temperature = eng.NF_to_T_noise(self.noise_figure)
         else:

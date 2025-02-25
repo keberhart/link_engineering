@@ -25,9 +25,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from numpy import (
     arcsin, arctan2, array, cos, einsum, finfo, float64,
-    full_like, load, rollaxis, sin, sqrt,
+    full_like, rollaxis, sin, sqrt,
 )
-from pkgutil import get_data
 from ..link_engineering.constants import tau
 
 _AVOID_DIVIDE_BY_ZERO = finfo(float64).tiny

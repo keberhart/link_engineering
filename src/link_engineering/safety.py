@@ -46,7 +46,7 @@ class Safety():
         self.R_gnd = (self.diam/2)+1
 
         # trying to implement near field density estimation
-        modded_gain = self.gain - 10.0
+#        modded_gain = self.gain - 10.0
         self.S_gnd = self.S_nf/100
 
         self.S_nf_mW = self.S_nf/10.0

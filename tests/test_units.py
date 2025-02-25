@@ -275,15 +275,6 @@ def test_temp_f():
         errors.append("f not correct value: {}".format(power.f))
     assert not errors, "errors occured:\n{}".format("\n".join(errors))
 
-def test_pwr_repr():
-    freq = units.Temperature(k=1.0)
-    errors = []
-    output = freq.__repr__()
-    expected = '<Temperature 1.0 K>'
-    if not(output == expected):
-        errors.append('got: {}\nexpected: {}'.format(output, expected))
-    assert not errors, "errors occured:\n{}".format("\n".join(errors))
-
 def test_gain_amp():
     errors = []
     power = units.Gain(a=1.0)
