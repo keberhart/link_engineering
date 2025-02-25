@@ -7,8 +7,7 @@
 #
 #------------------------------------------------------------------------------
 
-import link_engineering
-
+from ..link_engineering import link_eng as eng
 
 class Device():
     ''' Describe a device in an antenna system
@@ -27,10 +26,10 @@ class Device():
             raise Exception(error_msg)
         if noise_figure != None:
             self.noise_figure = noise_figure
-            self.temperature = NF_to_T_noise(self.noise_figure)
+            self.temperature = eng.NF_to_T_noise(self.noise_figure)
         else:
             self.temperature = temperature
-            self.noise_figure = T_noise_to_NF(self.temperature)
+            self.noise_figure = eng.T_noise_to_NF(self.temperature)
 
     def __repr__(self):
         return "Device({}, {}, {})".format(self.name, self.temperature,

@@ -6,7 +6,7 @@
 #
 #------------------------------------------------------------------------------
 
-import link_eng as eng
+from ..link_engineering import link_eng as eng
 import math
 
 class Safety():

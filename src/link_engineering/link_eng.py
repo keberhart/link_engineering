@@ -30,8 +30,8 @@
 import math
 from scipy.special import jv
 from scipy.special import erfc
-from link_engineering.constants import K, K_dBW, C, ERAD
-from link_engineering import units
+from ..link_engineering.constants import K, K_dBW, C, ERAD
+from ..link_engineering import units
 
 def calc_noise_power_in_bandwidth(temperature, bandwidth):
     '''Average power in Watts

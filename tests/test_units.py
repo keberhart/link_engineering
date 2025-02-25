@@ -6,7 +6,7 @@
 #
 #------------------------------------------------------------------------------
 import pytest
-from link_engineering import units
+from ..src.link_engineering import units
 
 def test_frequency_Hz():
     errors = []

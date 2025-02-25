@@ -27,9 +27,9 @@ Distance default storage changed to meters.
 """
 import numpy as np
 from numpy import abs, copysign, isnan
-from link_engineering.constants import AU_KM, AU_M, C, DAY_S, tau
-from link_engineering.descriptorlib import reify
-from link_engineering.functions import _to_array, length_of
+from ..link_engineering.constants import AU_KM, AU_M, C, DAY_S, tau
+from ..link_engineering.descriptorlib import reify
+from ..link_engineering.functions import _to_array, length_of
 
 _dfmt = '{0}{1:02}deg {2:02}\' {3:02}.{4:0{5}}"'
 _dsgn = '{0:+>1}{1:02}deg {2:02}\' {3:02}.{4:0{5}}"'

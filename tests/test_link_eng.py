@@ -6,8 +6,8 @@
 #
 #------------------------------------------------------------------------------
 import pytest
-from link_engineering import link_eng as le
-from link_engineering import units as u
+from ..src.link_engineering import link_eng as le
+from ..src.link_engineering import units as u
 
 sixGHz = u.Frequency(GHz=6.0)
 fourGHz = u.Frequency(GHz=4.0)
