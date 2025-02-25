@@ -99,7 +99,7 @@ class getset(object):
         return value
 
 class Gain(Unit):
-    """A Temperature, stored internally as Amp Factor and available in other units.
+    """A Gain, stored internally as Amp Factor and available in other units.
 
     You can initialize a ``Gain`` by providing a single float or a
     float array as either an ``dB=`` or ``a=`` parameter.
