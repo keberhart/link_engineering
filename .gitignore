@@ -1,9 +1,10 @@
 coverage.xml
 .coverage
 tests/__pycache__
-link_engineering/__pycache__
+src/link_engineering/__pycache__
 link_engineering/constants.py:Zone.Identifier
 .gitignore
 link_engineering/descriptorlib.py:Zone.Identifier
 link_engineering/functions.py:Zone.Identifier
 link_engineering.code-workspace
+.coverage
