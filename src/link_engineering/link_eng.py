@@ -24,6 +24,9 @@
    5. "Antenna Models For Electromagnetic Compatability Analyses"
            NTIA TM-12-489, C.W Wang Ph.D., T. Keech, Ph.D.
 
+    6. "Satellite Communications, Second Edition" by Timothy Pratt,
+        Charles W. Bostian, and Jeremy E. Allnutt
+
     31MAY23 - Kyle Eberhart - updated functions to use the units library
 '''
 
@@ -32,6 +35,21 @@ from scipy.special import jv
 from scipy.special import erfc
 from ..link_engineering.constants import K, C, ERAD
 from ..link_engineering import units
+
+def calc_Flux_Density(EIRP, range):
+    ''' Flux density in the direction of boresight at range.
+
+        Reference 6: Equation 4.3
+
+        F = (EIRP)/((4*pi*range)^2) W/m^2
+
+        EIRP in Watts, units.Power()
+        range in km, units.Distance()
+
+    '''
+    _F = EIRP.W/(4*math.pi*(range.m**2))
+    _F = units.Power(W=_F)
+    return _F
 
 def calc_noise_power_in_bandwidth(temperature, bandwidth):
     '''Average power in Watts
@@ -96,7 +114,8 @@ def calc_EIRP(G, P):
         EIRP = G*P
 
         G is the Gain of the transmit antenna in dB
-        P is the radiated power, output will be in the same units used as the input. ie: watts in watts out, kW in kW out, mW in mW out.
+        P is the radiated power, output will be in the same units
+            used as the input. ie: watts in watts out, kW in kW out, mW in mW out.
 
         returns units.Power()
 
