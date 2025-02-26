@@ -67,3 +67,11 @@ def test_calc_free_space_loss():
     fsl = le.calc_free_space_loss(rnge, freq)
     assert(fsl.dB == pytest.approx(196, 0.1))
 
+def test_flux_density():
+    tx_pwr = u.Power(W=10.0)
+    tx_g = u.Gain(dB=17.0)
+    EIRP = le.calc_EIRP(tx_g, tx_pwr)
+    assert EIRP.W == pytest.approx(500, 2)
+    rng = u.Distance(km=40000.0)
+    flux = le.calc_Flux_Density(EIRP, rng)
+    assert flux.dBw == pytest.approx(-136, .04)
