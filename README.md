@@ -46,3 +46,6 @@
 
     6. "Skyfield: Elegant Astronomy for Python" by Brandon Rhodes,
         ASCL: ascl:1907.024
+
+    7. "Satellite Communications, Second Edition" by Timothy Pratt,
+        Charles W. Bostian, and Jeremy E. Allnutt

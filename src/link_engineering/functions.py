@@ -27,7 +27,7 @@ from numpy import (
     arcsin, arctan2, array, cos, einsum, finfo, float64,
     full_like, rollaxis, sin, sqrt,
 )
-from ..link_engineering.constants import tau
+from link_engineering.constants import tau
 
 _AVOID_DIVIDE_BY_ZERO = finfo(float64).tiny
 

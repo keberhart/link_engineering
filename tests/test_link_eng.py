@@ -6,8 +6,8 @@
 #
 #------------------------------------------------------------------------------
 import pytest
-from ..src.link_engineering import link_eng as le
-from ..src.link_engineering import units as u
+from src.link_engineering import link_eng as le
+from src.link_engineering import units as u
 
 sixGHz = u.Frequency(GHz=6.0)
 fourGHz = u.Frequency(GHz=4.0)
@@ -75,3 +75,37 @@ def test_flux_density():
     rng = u.Distance(km=40000.0)
     flux = le.calc_Flux_Density(EIRP, rng)
     assert flux.dBw == pytest.approx(-136, .04)
+
+def test_sefd():
+    # having trouble getting this to work. Found several example
+    #   data sets on the web, but none come out as close as I would hope.
+    # from the LWA:
+    # examples used: Ae = 800, Tsys=1260, sefd=4370
+    # examples used: Ae = 1020, Tsys=1740, sefd=4680
+    # from Google Gemini: but Gemini does math bad and the sefd out was off
+    # example used: Ae = 100, Tsys=100, ~sefd=2760.6
+    A_eff = 100.0
+    T_sys = u.Temperature(k=100.0)
+    SEFD = le.calc_SEFD(A_eff, T_sys)
+    assert SEFD == pytest.approx(2760.6, .01)
+
+def test_antenna_t():
+    # example from the McMaster University slides:
+    #Example (modified from Kraus, p. 406): A circular reflector antenna of
+    # 500 m2 effective aperture operating at λ = 20 cm is directed at the
+    # zenith. What is the total antenna temperature assuming the sky
+    # temperature close to zenith is equal to 10° K, whereas at the horizon it
+    # is 150° K? Take the ground temperature equal to 300° K and assume that
+    # one-half of the minor-lobe beam is in the backdirection (toward the
+    # ground) and one-half is toward the horizon. The main beam efficiency is
+    # BEM =0.7.
+
+    ant_diam = u.Distance(m=500)
+    # example is an area not diam? why is this working?
+    ant_eff = 0.7
+    wl = u.Frequency(wl=20)
+    beamwidth = le.calc_beamwidth(le.calc_ant_G(ant_eff, ant_diam, wl))
+    sky_temp_k = u.Temperature(k=10)
+    ambient_temp_k = u.Temperature(k=300)
+    T = le.calc_antenna_T(beamwidth, ant_eff, sky_temp_k, ambient_temp_k)
+    assert T == pytest.approx(74.5, .01)

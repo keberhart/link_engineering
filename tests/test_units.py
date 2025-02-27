@@ -6,7 +6,7 @@
 #
 #------------------------------------------------------------------------------
 import pytest
-from ..src.link_engineering import units
+from src.link_engineering import units
 
 def test_frequency_Hz():
     freq = units.Frequency(Hz=1000)

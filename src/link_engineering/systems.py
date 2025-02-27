@@ -7,7 +7,7 @@
 #
 #------------------------------------------------------------------------------
 
-from ..link_engineering import link_eng as eng
+from link_engineering import link_eng as eng
 
 class Device():
     ''' Describe a device in an antenna system
