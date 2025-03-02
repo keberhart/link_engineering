@@ -108,4 +108,14 @@ def test_antenna_t():
     sky_temp_k = u.Temperature(k=10)
     ambient_temp_k = u.Temperature(k=300)
     T = le.calc_antenna_T(beamwidth, ant_eff, sky_temp_k, ambient_temp_k)
-    assert T == pytest.approx(74.5, .01)
+    assert T.k == pytest.approx(74.5, .01)
+
+def test_NF_and_T():
+    # Noise Figure = 6 dB
+    # Temperature K = 870
+    NF = 6
+    T = le.NF_to_T_noise(NF)
+    assert T == pytest.approx(864.5, .1)
+    T = 870
+    NF = le.T_noise_to_NF(T)
+    assert NF == pytest.approx(6.02, .01)

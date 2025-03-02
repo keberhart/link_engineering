@@ -33,8 +33,8 @@
 import math
 from scipy.special import jv
 from scipy.special import erfc
-from link_engineering.constants import K, C, ERAD
-from link_engineering import units
+from ..link_engineering.constants import K, C, ERAD
+from ..link_engineering import units
 
 def calc_Flux_Density(EIRP, range):
     ''' Flux density in the direction of boresight at range.
@@ -214,7 +214,6 @@ def calc_antenna_T(beamwidth, antenna_effiency, sky_temp_K, ambient_temp_K):
 
         McMaster University -
         Lecture 7: Antenna Noise Temperature and System Signal-To-Noise Ratio
-        Equation 7.36
 
         It has parts that look similar to things in reference 3, at the end of page 758.
 
@@ -233,7 +232,7 @@ def calc_antenna_T(beamwidth, antenna_effiency, sky_temp_K, ambient_temp_K):
     Ta_hbl = 1/beamwidth*(ambient_temp_K/2*(1-antenna_effiency)/2*beamwidth)
     print(Ta_hbl)
     _T = Ta_mb + Ta_gbl + Ta_hbl
-    return _T
+    return units.Temperature(k = _T)
 
 
 def calc_G_T(G, T_sys):
@@ -254,7 +253,7 @@ def NF_to_T_noise(NF, T_ref=290):
         T_ref is the reference temperature in K
 
     '''
-    _T_noise = T_ref*((10**(NF/10)) - 1)
+    _T_noise = T_ref*(db_to_lin(NF) - 1)
     return _T_noise
 
 
@@ -272,15 +271,11 @@ def T_noise_to_NF(T_noise, T_ref=290):
 def calc_SEFD(eff_aperature, T_sys):
     '''System Equivilent flux density [Jy]
 
-        https://leo.phys.unm.edu/~lwa/obsstatus/obsstatus006.html
-
-        refers to a measure of a radio telescope's sensitivity, expressed as the flux density of a source that would produce the same amount of noise as the system itself; essentially, a lower SEFD indicates a more sensitive telescope system
-
         eff_aperature is the antenna effective aperature in m^2
         T_sys is the system noise temperature in [K]
 
     '''
-    _sefd = ((2*K*T_sys.k)/eff_aperature)*(1e26)
+    _sefd = 10**26 * 2*K*T_sys.k/eff_aperature
     return _sefd
 
 
@@ -379,6 +374,7 @@ def uplink_performance(EIRP, uplink_loss, GoTsc, k):
         EIRPground_station is the EIRP from the ground station
         uplink_loss is the total uplink losses in dB
         k is Boltzmann's constant
+        GoTsc is the G/T of the spacecraft
 
     '''
     _CoNo = EIRP*(1/uplink_loss)*(GoTsc)*(1/k)
@@ -393,6 +389,7 @@ def downlink_performance(EIRP, downlink_loss, GoTgs, k):
         EIRPsc is the EIRP from the spacecraft
         downlink_loss is the total downlnk losses in dB
         k is Boltzmann's constant
+        GoTgs is the G/T of the ground station
 
     '''
     _CoNo = EIRP*(1/downlink_loss)*(GoTgs)*(1/k)
