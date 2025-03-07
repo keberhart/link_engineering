@@ -36,66 +36,100 @@ from scipy.special import erfc
 from ..link_engineering.constants import K, C, ERAD
 from ..link_engineering import units
 
-def calc_Flux_Density(EIRP:units.Power, range:units.Distance)->units.Power:
-    ''' Flux density in the direction of boresight at range.
 
-        Reference 6: Equation 4.3
+def calc_EIRP(G:units.Gain, P:units.Power)->units.Power:
+    '''Effective Isotropic Radiated Power
 
-        F = (EIRP)/((4*pi*range)^2) W/m^2
+        Reference 3: Equation 16.2.8 description
+        Reference 3: Example 16.2.1
 
-        EIRP in Watts, units.Power()
-        range in km, units.Distance()
+        EIRP = G*P
 
-    '''
-    _F = EIRP.W/(4*math.pi*(range.m**2))
-    _F = units.Power(W=_F)
-    return _F
+        G is the Gain of the transmit antenna in dB
+        P is the radiated power, output will be in the same units
+            used as the input. ie: watts in watts out, kW in kW out, mW in mW out.
 
-def calc_volts_meters(Flux_Density:units.Power)->float:
-    """Converts flux density to volts per meter.
-        Flux Density in W/m^2, units.Power()
-        returns V/m^2 as float
-
-        Equation from a random website:
-        https://www.powerwatch.org.uk/science/unitconversion.asp
-
-    """
-    _v = math.sqrt(Flux_Density.W*377)
-    return _v
-
-def calc_noise_power_in_bandwidth(temperature:units.Temperature, bandwidth:units.Frequency)->units.Power:
-    '''Average power in Watts
-
-        Reference 3: Equation 16.7.1
-                     Example 16.7.1
-
-        N = k*temperature*bandwidth
-
-        where k is boltzmanns constant
-        where temperature is in K, from the units.py module
-        where bandwidth is in Hz, from the units.py module
-
-        returns noise power as units.Power()
-    '''
-    _N = K*temperature.k*bandwidth.Hz
-    _N = units.Power(W=_N)
-    return _N
-
-#TODO: I think this function is replicated with a different name. I also think this function is wrong and the math is for linear units not dB.
-def calc_SNR(EIRP:units.Power, L:units.Gain, GoT:float)->units.Power:
-    '''Signal to Noise Ratio
-
-        (C/No) = (EIRP)*(1/L)*(GoT)*(1/k)
-
-        EIRP is the Effective Isotropic Radiated Power in dB
-        L is the medium losses in dB
-        GoT is the receiving system G/T or System Gain over System noise
-            temperature.
-        k is Boltzmann's constant (1.3806x10^-23 J/K or -228.5991 dBW/K/Hz)
+        returns units.Power()
 
     '''
-    _SNR = (EIRP)*(1/L)*(GoT)*(1/K)
-    return _SNR
+    _EIRP = G.a*P.W
+    _EIRP = units.Power(W=_EIRP)
+    return _EIRP
+
+def calc_beamwidth(G:units.Gain)->units.Angle:
+    '''Antenna beamwidth in degrees
+
+        Refrence 3: Example 16.2.2 page 744
+    
+        G is antenna gain in dB, calculated above...
+
+    '''
+    _beamwidth = math.sqrt(16/G.a)
+    return units.Angle(radians=_beamwidth)
+
+def calc_effective_aperature(antenna_effiency:float, diameter:units.Distance)->float:
+    '''Antenna effective aperature [m^2]
+
+        Reference 3: Equation 16.3.8
+    
+        A_eff = antenna_effiency*(1/4)*pi()*diameter^2
+        
+        diameter is in m, a units.Distance
+        antenna_effiency is a decimal percentage
+
+        returns float(m^2)
+    '''
+    A_eff = antenna_effiency * (1/4) * math.pi * math.pow(diameter.m, 2)
+    return A_eff
+
+def calc_ant_G(antenna_effiency:float, diameter:units.Distance, wavelength:units.Frequency)->units.Gain:
+    '''Gain of a simple prime focus parbolic antenna
+
+        Reference 3: Equation 16.3.9
+
+        G = antenna_effiency*(pi()*diameter/wavelength)^2
+
+        antenna_effiency is a decimal percentage
+        diameter is in m, a units.Distance
+        wavelength is in m, provided by a units.Frequency, 
+
+        returns units.Gain()
+    '''
+    _G = antenna_effiency*math.pow(math.pi*diameter.m/wavelength.wl, 2)
+    _G = units.Gain(a=_G)
+    return _G
+
+def calc_half_power_beamwidth(diameter:units.Distance, wavelength:units.Frequency)->units.Angle:
+    '''3dB beamwidth or HPBW
+
+        reference 3; page 748; equation 16.3.11
+        "The constant 70 degrees represents only a rough approximation..."
+
+        HPBW = 70*(wavelength/diameter)
+
+        diameter of the parabolic reflector in meters, units.Distance object
+        wavelength is in meters, uses units.Frequency object
+
+        Returns a units.Angle()
+    '''
+    _HPBW = 70*wavelength.wl/diameter.m
+    _HPBW = units.Angle(degrees=_HPBW)
+    return _HPBW
+
+def calc_free_space_loss(slant_range:units.Distance, wavelength:units.Frequency)->units.Gain:
+    '''Free Space Loss
+
+        Reference 3: Equation 16.6.5
+
+        FSL = (4*pi*range/wavelength)^2
+
+        slant_range is the straight line distance to the spacecraft from
+            the earth terminal in meters, units.Distance()
+        frequency is in Hz, units.Frequency
+
+    '''
+    _FSL = math.pow(4*math.pi*slant_range.m/wavelength.wl, 2)
+    return units.Gain(a=_FSL)
 
 def calc_power_received(P_tx:units.Power, G_tx:units.Gain, G_rx:units.Gain, frequency:units.Frequency, range:units.Distance)->units.Power:
     '''Power received at the distant end, with free space losses
@@ -119,101 +153,65 @@ def calc_power_received(P_tx:units.Power, G_tx:units.Gain, G_rx:units.Gain, freq
     P_rx = units.Power(dBw=P_rx)
     return P_rx
 
-def calc_EIRP(G:units.Gain, P:units.Power)->units.Power:
-    '''Effective Isotropic Radiated Power
+def calc_noise_power_in_bandwidth(temperature:units.Temperature, bandwidth:units.Frequency)->units.Power:
+    '''Average power in Watts
 
-        Reference 3: Example 16.2.1
+        Reference 3: Equation 16.7.1
+                     Example 16.7.1
 
-        EIRP = G*P
+        N = k*temperature*bandwidth
 
-        G is the Gain of the transmit antenna in dB
-        P is the radiated power, output will be in the same units
-            used as the input. ie: watts in watts out, kW in kW out, mW in mW out.
+        where k is boltzmanns constant
+        where temperature is in K, from the units.py module
+        where bandwidth is in Hz, from the units.py module
 
-        returns units.Power()
+        returns noise power as units.Power()
+    '''
+    _N = K*temperature.k*bandwidth.Hz
+    _N = units.Power(W=_N)
+    return _N
+
+def calc_Flux_Density(EIRP:units.Power, range:units.Distance)->units.Power:
+    ''' Flux density in the direction of boresight at range.
+
+        Reference 6: Equation 4.3
+
+        F = (EIRP)/((4*pi*range)^2) W/m^2
+
+        EIRP in Watts, units.Power()
+        range in km, units.Distance()
+    '''
+    _F = EIRP.W/(4*math.pi*(range.m**2))
+    _F = units.Power(W=_F)
+    return _F
+
+def calc_volts_meters(Flux_Density:units.Power)->float:
+    """Converts flux density to volts per meter.
+        Flux Density in W/m^2, units.Power()
+        returns V/m^2 as float
+
+        Equation from a random website:
+        https://www.powerwatch.org.uk/science/unitconversion.asp
+
+    """
+    _v = math.sqrt(Flux_Density.W*377)
+    return _v
+
+#TODO: I think this function is replicated with a different name. I also think this function is wrong and the math is for linear units not dB.
+def calc_SNR(EIRP:units.Power, L:units.Gain, GoT:float)->units.Power:
+    '''Signal to Noise Ratio
+
+        (C/No) = (EIRP)*(1/L)*(GoT)*(1/k)
+
+        EIRP is the Effective Isotropic Radiated Power in dB
+        L is the medium losses in dB
+        GoT is the receiving system G/T or System Gain over System noise
+            temperature.
+        k is Boltzmann's constant (1.3806x10^-23 J/K or -228.5991 dBW/K/Hz)
 
     '''
-    _EIRP = G.a*P.W
-    _EIRP = units.Power(W=_EIRP)
-    return _EIRP
-
-
-def calc_wavelength(freq:float)->float:
-    '''Wavelength
-
-        wave_length = c/freq
-
-        c is the speed of light in m/s
-        freq is the frequency in Hz
-
-    '''
-    wavelength = C/freq
-    return wavelength
-
-
-def calc_ant_G(antenna_effiency:float, diameter:units.Distance, wavelength:units.Frequency)->units.Gain:
-    '''Gain of a simple prime focus parbolic antenna
-
-        Reference 3: Equation 16.3.9
-
-        G = antenna_effiency*(pi()*diameter/wavelength)^2
-
-        antenna_effiency is a decimal percentage
-        diameter is in m, a units.Distance
-        wavelength is in m, provided by a units.Frequency, 
-
-        returns units.Gain()
-    '''
-    _G = antenna_effiency*math.pow(math.pi*diameter.m/wavelength.wl, 2)
-    _G = units.Gain(a=_G)
-    return _G
-
-
-def calc_effective_aperature(antenna_effiency:float, diameter:units.Distance)->float:
-    '''Antenna effective aperature [m^2]
-
-        Reference 3: Equation 16.3.8
-    
-        A_eff = antenna_effiency*(1/4)*pi()*diameter^2
-        
-        diameter is in m, a units.Distance
-        antenna_effiency is a decimal percentage
-
-        returns float(m^2)
-    '''
-    A_eff = antenna_effiency * (1/4) * math.pi * math.pow(diameter.m, 2)
-    return A_eff
-
-
-def calc_beamwidth(G:units.Gain)->units.Angle:
-    '''Antenna beamwidth in degrees
-
-        Refrence 3: Example 16.2.2 page 744
-    
-        G is antenna gain in dB, calculated above...
-
-    '''
-    _beamwidth = math.sqrt(16/G.a)
-    return units.Angle(radians=_beamwidth)
-
-
-def calc_half_power_beamwidth(diameter:units.Distance, wavelength:units.Frequency)->units.Angle:
-    '''3dB beamwidth or HPBW
-
-        reference 3; page 748; equation 16.3.11
-        "The constant 70 degrees represents only a rough approximation..."
-
-        HPBW = 70*(wavelength/diameter)
-
-        diameter of the parabolic reflector in meters, units.Distance object
-        wavelength is in meters, uses units.Frequency object
-
-        Returns a units.Angle()
-    '''
-    _HPBW = 70*wavelength.wl/diameter.m
-    _HPBW = units.Angle(degrees=_HPBW)
-    return _HPBW
-
+    _SNR = (EIRP)*(1/L)*(GoT)*(1/K)
+    return _SNR
 
 def calc_antenna_T(beamwidth:units.Angle, antenna_effiency:float, sky_temp_K:units.Temperature, ambient_temp_K:units.Temperature)->units.Temperature:
     '''Antenna Temperature
@@ -247,7 +245,6 @@ def calc_antenna_T(beamwidth:units.Angle, antenna_effiency:float, sky_temp_K:uni
     _T = Ta_mb + Ta_gbl + Ta_hbl
     return units.Temperature(k = _T)
 
-
 def calc_G_T(G:units.Gain, T_sys:units.Temperature)->float:
     '''Calculate the antenna G/T
 
@@ -257,7 +254,6 @@ def calc_G_T(G:units.Gain, T_sys:units.Temperature)->float:
     '''
     _G_T = G-lin_to_db(T_sys)
     return _G_T
-
 
 def NF_to_T_noise(NF:float, T_ref:float=290.0)->float:
     '''Convert Noise Figure to noise temperature [K]
@@ -269,7 +265,6 @@ def NF_to_T_noise(NF:float, T_ref:float=290.0)->float:
     _T_noise = T_ref*(db_to_lin(NF) - 1)
     return _T_noise
 
-
 def T_noise_to_NF(T_noise:float, T_ref:float=290)->float:
     '''Convert a noie temperature to NF [dB]
 
@@ -280,7 +275,6 @@ def T_noise_to_NF(T_noise:float, T_ref:float=290)->float:
     _NF = lin_to_db((T_noise/T_ref) + 1)
     return _NF
 
-
 def calc_SEFD(eff_aperature:units.Angle, T_sys:units.Temperature)->float:
     '''System Equivilent flux density [Jy]
 
@@ -290,7 +284,6 @@ def calc_SEFD(eff_aperature:units.Angle, T_sys:units.Temperature)->float:
     '''
     _sefd = 10**26 * 2*K*T_sys.k/eff_aperature
     return _sefd
-
 
 def calc_radiometer_equation(S_flux, sefd, on_time, bw):
     '''Estimate the snr for an observation
@@ -304,7 +297,6 @@ def calc_radiometer_equation(S_flux, sefd, on_time, bw):
     _snr = S_flux*math.sqrt(on_time*bw)/sefd
     return _snr
 
-
 def calc_off_nadir(el_angle, sc_alt, gs_alt):
     '''Angle off of earth pointng beam
 
@@ -316,7 +308,6 @@ def calc_off_nadir(el_angle, sc_alt, gs_alt):
     gs_part = (gs_alt+ERAD)*math.sin(math.radians(el_angle+90.0))
     _DOFF = math.degrees(math.asin(gs_part/(sc_alt+ERAD)))
     return _DOFF
-
 
 def calc_pointing_loss(point_err, HPBW):
     '''Pointing error loss
@@ -335,7 +326,6 @@ def calc_pointing_loss(point_err, HPBW):
                                 point_err, 2)/math.pow(HPBW, 2))))
     return _Point_loss, loss1, loss2, loss3
 
-
 def calc_atmo_loss(el_angle):
     '''A rough estimate for atmospheric loss. There are much better ways
         to do this, but this is very easy.
@@ -344,29 +334,15 @@ def calc_atmo_loss(el_angle):
     _atmo_loss = 1+(1/el_angle)
     return lin_to_db(_atmo_loss)
 
-
-def calc_free_space_loss(slant_range:units.Distance, wavelength:units.Frequency)->units.Gain:
-    '''Free Space Loss
-
-        Reference 3: Equation 16.6.5
-
-        FSL = (4*pi*range/wavelength)^2
-
-        slant_range is the straight line distance to the spacecraft from
-            the earth terminal in meters, units.Distance()
-        frequency is in Hz, units.Frequency
-
-    '''
-    _FSL = math.pow(4*math.pi*slant_range.m/wavelength.wl, 2)
-    return units.Gain(a=_FSL)
-
-
 def calc_polarization_loss(nadir_off):
     '''Polarization Loss
 
         Lpol = 1.389*10^8(nadir_off^4)-3.389*10^4(nadir_off^2)-2.86*10^7 (dB)
 
         nadir_off is radians offset from boresight
+
+        Look at reference 3: bottom of page 754 for clues to figure this out
+        Also look at page 752
 
     '''
     print("doesn't work right!")
@@ -377,38 +353,22 @@ def calc_polarization_loss(nadir_off):
                                 nadir_off, 2)-2.286*math.pow(10, -7)
     return _Lpol
 
-
-def uplink_performance(EIRP, uplink_loss, GoTsc, k):
-    '''Uplink performance
-
-        (C/No)uplink = (EIRPground_station)(1/uplink_loss)(G/Tsc)(1/k)
-
-        EIRPground_station is the EIRP from the ground station
-        uplink_loss is the total uplink losses in dB
-        k is Boltzmann's constant
-        GoTsc is the G/T of the spacecraft
-
-    '''
-    _CoNo = EIRP*(1/uplink_loss)*(GoTsc)*(1/k)
-    return _CoNo
-
-
-def downlink_performance(EIRP, downlink_loss, GoTgs, k):
+def link_performance(EIRP:units.Power, path_loss:units.Gain, GoTgs:float)->float:
     '''Downlink performance
 
         (C/No)downlink = (EIRPsc)*(1/downlink_loss)*(GoTgs)*(1/k)
 
         EIRPsc is the EIRP from the spacecraft
         downlink_loss is the total downlnk losses in dB
-        k is Boltzmann's constant
         GoTgs is the G/T of the ground station
 
+        Something is wrong here, reference 3: page 764, we are going to need the bandwidth of the carrier as well. And really the mod type. It might be better to refer to DISA 800-70-1.
+
     '''
-    _CoNo = EIRP*(1/downlink_loss)*(GoTgs)*(1/k)
+    _CoNo = EIRP-(path_loss)+(GoTgs)-(K)
     return _CoNo
 
-
-def service_mod_loss(mod_index):
+def service_mod_loss(mod_index:float)->float:
     '''Service Modulation loss
 
         service_mod_loss = 10*log10(2*bessel(1, mod_index)^2)
@@ -420,7 +380,6 @@ def service_mod_loss(mod_index):
     _service_mod_loss = 10*math.log(2*math.pow(jv(1, mod_index), 2))
     return _service_mod_loss
 
-
 def TLM_EbNo(CoNoTLM, service_mod_loss, data_rate_loss):
     '''Eb/No of the telemetry stream
 
@@ -431,7 +390,6 @@ def TLM_EbNo(CoNoTLM, service_mod_loss, data_rate_loss):
     '''
     _TLM_EbNo = CoNoTLM-service_mod_loss-data_rate_loss
     return _TLM_EbNo
-
 
 def bit_error_rate(TLM_EbNo):
     '''Bit Error Rate - if it is an SGLS waveform
@@ -446,13 +404,11 @@ def bit_error_rate(TLM_EbNo):
     _BER = 0.5*erfc(math.sqrt(TLM_EbNo))
     return _BER
 
-
 def lin_to_db(value):
     '''Convert a value from linear form to logrithmic dB
     '''
     result = 10*math.log10(value)
     return result
-
 
 def db_to_lin(value):
     '''Convert a value from dB to linear form
@@ -460,6 +416,17 @@ def db_to_lin(value):
     result = math.pow(10, value/10)
     return result
 
+def calc_wavelength(freq:float)->float:
+    '''Wavelength
+
+        wave_length = c/freq
+
+        c is the speed of light in m/s
+        freq is the frequency in Hz
+
+    '''
+    wavelength = C/freq
+    return wavelength
 
 def S_surface(power, diameter):
     ''' The maximum power density in front of an antenna, at the surface.
