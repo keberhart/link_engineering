@@ -33,7 +33,7 @@
 import math
 from scipy.special import jv
 from scipy.special import erfc
-from ..link_engineering.constants import K, C, ERAD
+from ..link_engineering.constants import K, C, ERAD, K_dBW
 from ..link_engineering import units
 
 
@@ -149,15 +149,17 @@ def calc_power_received(P_tx:units.Power, G_tx:units.Gain, G_rx:units.Gain, freq
 
     '''
     free_space_loss = calc_free_space_loss(range, frequency)
-    P_rx = P_tx.dBw + G_tx.dB - free_space_loss.dB + G_rx.dB
+    EIRP = calc_EIRP(G_tx, P_tx)
+    P_rx = EIRP.dBw - free_space_loss.dB + G_rx.dB
     P_rx = units.Power(dBw=P_rx)
     return P_rx
 
 def calc_noise_power_in_bandwidth(temperature:units.Temperature, bandwidth:units.Frequency)->units.Power:
-    '''Average power in Watts
+    '''Noise power in Watts
 
         Reference 3: Equation 16.7.1
                      Example 16.7.1
+            Also:   Equation 16.8.1
 
         N = k*temperature*bandwidth
 
@@ -185,33 +187,23 @@ def calc_Flux_Density(EIRP:units.Power, range:units.Distance)->units.Power:
     _F = units.Power(W=_F)
     return _F
 
-def calc_volts_meters(Flux_Density:units.Power)->float:
-    """Converts flux density to volts per meter.
-        Flux Density in W/m^2, units.Power()
-        returns V/m^2 as float
+#TODO:  broken. I also think this function is wrong and the math is for linear units not dB. and it needs to include the carrier bandwidth.
+def calc_SNR(EIRP:units.Power, path_loss:units.Gain, GoTgs:float, Bw:units.Frequency)->units.Power:
+    '''Downlink performance
 
-        Equation from a random website:
-        https://www.powerwatch.org.uk/science/unitconversion.asp
+        SNR = (EIRPsc)-(path_loss)+(GoTgs)-K-B
 
-    """
-    _v = math.sqrt(Flux_Density.W*377)
-    return _v
+        EIRPsc is the EIRP from the spacecraft
+        downlink_loss is the total downlnk losses in dB
+        GoTgs is the G/T of the ground station
+        K is boltzmann's constant (1.380649e-23 J/K)
+        B is the bandwidth of the carrier in Hz
 
-#TODO: I think this function is replicated with a different name. I also think this function is wrong and the math is for linear units not dB.
-def calc_SNR(EIRP:units.Power, L:units.Gain, GoT:float)->units.Power:
-    '''Signal to Noise Ratio
-
-        (C/No) = (EIRP)*(1/L)*(GoT)*(1/k)
-
-        EIRP is the Effective Isotropic Radiated Power in dB
-        L is the medium losses in dB
-        GoT is the receiving system G/T or System Gain over System noise
-            temperature.
-        k is Boltzmann's constant (1.3806x10^-23 J/K or -228.5991 dBW/K/Hz)
+        Something is wrong here, reference 3: page 764, we are going to need the bandwidth of the carrier as well. And really the mod type. It might be better to refer to DISA 800-70-1.
 
     '''
-    _SNR = (EIRP)*(1/L)*(GoT)*(1/K)
-    return _SNR
+    _CoNo = EIRP.dBw-(path_loss.dB)+(GoTgs)-(K_dBW)-lin_to_db(Bw.Hz)
+    return _CoNo
 
 def calc_antenna_T(beamwidth:units.Angle, antenna_effiency:float, sky_temp_K:units.Temperature, ambient_temp_K:units.Temperature)->units.Temperature:
     '''Antenna Temperature
@@ -252,15 +244,16 @@ def calc_G_T(G:units.Gain, T_sys:units.Temperature)->float:
         T_sys is the antten noise temperature in K
 
     '''
-    _G_T = G-lin_to_db(T_sys)
+    _G_T = G.dB-lin_to_db(T_sys.k)
     return _G_T
 
 def NF_to_T_noise(NF:float, T_ref:float=290.0)->float:
     '''Convert Noise Figure to noise temperature [K]
 
         NF is Noise Figure in dB
-        T_ref is the reference temperature in K
+        T_ref is the reference temperature in Kd
 
+        reference 3: Equation 16.8.7
     '''
     _T_noise = T_ref*(db_to_lin(NF) - 1)
     return _T_noise
@@ -271,6 +264,7 @@ def T_noise_to_NF(T_noise:float, T_ref:float=290)->float:
         T_noise is the noise temperature in K
         T_ref is the reference temperature in K
 
+        reference 3: Equation 16.8.7
     '''
     _NF = lin_to_db((T_noise/T_ref) + 1)
     return _NF
@@ -353,21 +347,6 @@ def calc_polarization_loss(nadir_off):
                                 nadir_off, 2)-2.286*math.pow(10, -7)
     return _Lpol
 
-def link_performance(EIRP:units.Power, path_loss:units.Gain, GoTgs:float)->float:
-    '''Downlink performance
-
-        (C/No)downlink = (EIRPsc)*(1/downlink_loss)*(GoTgs)*(1/k)
-
-        EIRPsc is the EIRP from the spacecraft
-        downlink_loss is the total downlnk losses in dB
-        GoTgs is the G/T of the ground station
-
-        Something is wrong here, reference 3: page 764, we are going to need the bandwidth of the carrier as well. And really the mod type. It might be better to refer to DISA 800-70-1.
-
-    '''
-    _CoNo = EIRP-(path_loss)+(GoTgs)-(K)
-    return _CoNo
-
 def service_mod_loss(mod_index:float)->float:
     '''Service Modulation loss
 
@@ -427,6 +406,18 @@ def calc_wavelength(freq:float)->float:
     '''
     wavelength = C/freq
     return wavelength
+
+def calc_volts_meters(Flux_Density:units.Power)->float:
+    """Converts flux density to volts per meter.
+        Flux Density in W/m^2, units.Power()
+        returns V/m^2 as float
+
+        Equation from a random website:
+        https://www.powerwatch.org.uk/science/unitconversion.asp
+
+    """
+    _v = math.sqrt(Flux_Density.W*377)
+    return _v
 
 def S_surface(power, diameter):
     ''' The maximum power density in front of an antenna, at the surface.

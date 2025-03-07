@@ -206,3 +206,101 @@ def test_NF_and_T():
     T = 870
     NF = le.T_noise_to_NF(T)
     assert NF == pytest.approx(6.02, .01)
+
+def test_calc_SNR():
+    """ Test the calc_SNR function
+        Reference 3: Example 16.10.1 page 769
+        Its a full link budget example, lots of test to run
+        
+        range = 36000 km
+        u/l freq = 6 GHz
+        d/l freq = 4 GHz
+        et diam = 15 m
+        sc diam = .5 m
+        ant_eff = .60
+        et pwr = 1 kW
+        sc gain = 90 dB
+        sc Tant = 300 k
+        sc Tsys = 2700 k
+        et Tant = 50 k
+        et Tsys = 80 k
+        bw = 30 MHz
+    """
+    rng = u.Distance(km=36000)
+    ant_eff = .60
+    et_diam = u.Distance(m=15)
+    sc_diam = u.Distance(m=.5)
+    et_pwr = u.Power(kW=1)
+    sc_gain = u.Gain(dB=90)
+    sc_Tsys = u.Temperature(k=2700)
+    sc_Tant = u.Temperature(k=300)
+    sc_Tsys = u.Temperature(k=2700)
+    et_Tant = u.Temperature(k=50)
+    et_Tsys = u.Temperature(k=80)
+    bw = u.Frequency(MHz=30)
+    # Calculate the wavelength
+    ul_freq = u.Frequency(GHz=6.0)
+    dl_freq = u.Frequency(GHz=4.0)
+    assert(abs(ul_freq.wl - 0.05) < 0.01), f"Expected 0.05, got {ul_freq.wl}"
+    assert(abs(dl_freq.wl - 0.075) < 0.001), f"Expected 0.075, got {dl_freq.wl}"
+    # Calculate the free space loss for uplink and downlink
+    fsl_u = le.calc_free_space_loss(rng, ul_freq)
+    fsl_d = le.calc_free_space_loss(rng, dl_freq)
+    assert(abs(fsl_u.dB - 199.13) < 0.01), f"Expected 199.13, got {fsl_u.dB}"
+    assert(abs(fsl_d.dB - 195.61) < 0.01), f"Expected 195.61, got {fsl_d.dB}"
+    # Calculate the antenna gains for uplink and downlink
+    gain_te = le.calc_ant_G(ant_eff, et_diam, ul_freq)
+    assert(abs(gain_te.dB - 57.27) < 0.01), f"Expected 57.27, got {gain_te.dB}"
+    gain_rs = le.calc_ant_G(ant_eff, sc_diam, ul_freq)
+    assert(abs(gain_rs.dB - 27.72) < 0.02), f"Expected 27.72, got {gain_rs.dB}"
+    gain_ts = le.calc_ant_G(ant_eff, sc_diam, dl_freq)
+    assert(abs(gain_ts.dB - 24.20) < 0.01), f"Expected 24.20, got {gain_ts.dB}"
+    gain_re = le.calc_ant_G(ant_eff, et_diam, dl_freq)
+    assert(abs(gain_re.dB - 53.75) < 0.01), f"Expected 53.75, got {gain_re.dB}"
+    # calculate the transimit EIRP from the tx earth station
+    p_te = le.calc_EIRP(gain_te, et_pwr)
+    assert(abs(p_te.dBw - 87.27) < 0.01), f"Expected 87.27, got {p_te.dBw}"
+    # calculate the power recieved by the spacecraft
+    p_rs = u.Power(dBw=(p_te.dBw - fsl_u.dB + gain_rs.dB))
+    assert(abs(p_rs.dBw - (-84.14)) < 0.01), f"Expected -84.14, got {p_rs.dBw}"
+    # do that again, using one of the link engineering functions.
+    p_rs_eng = le.calc_power_received(et_pwr, gain_te, gain_rs, ul_freq, rng)
+    assert(abs(p_rs_eng.dBw - (-84.14)) < 0.01), f"Expected -84.14, got {p_rs_eng.dBw}"
+    # calculate the transmit power of the spacecraft
+    p_ts = u.Power(dBw=(sc_gain.dB + p_rs.dBw))
+    assert(abs(p_ts.dBw - (5.86)) < 0.01), f"Expected 5.86, got {p_ts.dBw}"
+
+    # calculate the EIRP of the spacecraft and the Earth station's receive power
+    eirp_sc = le.calc_EIRP(gain_ts, p_ts)
+    assert(abs(eirp_sc.dBw - (30.06)) < 0.02), f"Expected 30.6, got {eirp_sc.dBw}"
+    p_re = u.Power(dBw=(eirp_sc.dBw - fsl_d.dB + gain_re.dB))
+    assert(abs(p_re.dBw - (-111.80)) < 0.1), f"Expected -111.80, got {p_re.dBw}"
+
+    # calculate the power received by the Earth station using the link engineering module
+    p_re = le.calc_power_received(p_ts, gain_ts, gain_re, dl_freq, rng)
+    assert(abs(p_re.dBw - (-111.80)) < 0.1), f"Expected -111.80, got {p_re.dBw}"
+    # calculate the system noise temperatures
+    t_rs = u.Temperature(k=(sc_Tant.k + sc_Tsys.k))
+    t_re = u.Temperature(k=(et_Tant.k + et_Tsys.k))
+    assert(abs(t_rs.k - (3000)) < 1), f"Expected 3000, got {t_rs.k}"
+    assert(abs(t_re.k - (130)) < 1), f"Expected 130, got {t_re.k}"
+    # calculate the noise power in the bandwidth of the system
+    n_rs = le.calc_noise_power_in_bandwidth(t_rs, bw)
+    n_re = le.calc_noise_power_in_bandwidth(t_re, bw)
+    assert(abs(n_rs.dBw - (-119.06)) < 0.01), f"Expected -119.06, got {n_rs.dBw}"
+    assert(abs(n_re.dBw - (-132.69)) < 0.01), f"Expected -132.69, got {n_re.dBw}"
+    # calculate the G/T for the spacecraft and the earth station
+    gt_rs = le.calc_G_T(gain_rs, t_rs)
+    gt_re = le.calc_G_T(gain_re, t_re)
+    assert(abs(gt_rs - (-7.05)) < 0.01), f"Expected -7.05, got {gt_rs}"
+    assert(abs(gt_re - (32.61)) < 0.01), f"Expected 32.61, got {gt_re}"
+    # calculate the SNR for the uplink and downlink
+    snr_up = le.calc_SNR(p_te, fsl_u, gt_rs, bw)
+    snr_dn = le.calc_SNR(eirp_sc, fsl_d, gt_re, bw)
+    assert(abs(snr_up - (34.92)) < 0.01), f"Expected 34.92, got {snr_up}"
+    assert(abs(snr_dn - (20.89)) < 0.01), f"Expected 20.89, got {snr_dn}"
+
+
+
+    
+
